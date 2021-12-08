@@ -15,66 +15,48 @@ defmodule Puzzle do
 
   defp decode(signals, [number | tail]) do
     signals
-    |> Enum.find_index(fn str -> compare(str, number) end)
+    |> Map.get(number |> to_charlist |> Enum.sort)
     |> Integer.to_string
     |> Kernel.<>(decode(signals, tail))
   end
 
-  defp compare(str1, str2) do
-    a = str1 |> String.graphemes |> Enum.sort
-    b = str2 |> String.graphemes |> Enum.sort
-
-    a == b
-  end
-
+  #
+  # Updated version
+  # Based on: https://github.com/ruslandoga/advent-2021-elixir/blob/master/lib/day8.ex
+  #
   defp signal_patterns(unique_signals) do
-    sig_1 = unique_signals |> Enum.find(fn str -> String.length(str) == 2 end)
-    sig_4 = unique_signals |> Enum.find(fn str -> String.length(str) == 4 end)
-    sig_7 = unique_signals |> Enum.find(fn str -> String.length(str) == 3 end)
-    sig_8 = unique_signals |> Enum.find(fn str -> String.length(str) == 7 end)
+    %{
+      2 => [sig_1],
+      3 => [sig_7],
+      4 => [sig_4],
+      5 => sig_235,
+      6 => sig_069,
+      7 => [sig_8],
+    } = Enum.group_by(unique_signals, &String.length/1, fn str ->
+      str |> to_charlist |> Enum.sort
+    end)
 
-    sig_069 = unique_signals |> Enum.filter(fn str -> String.length(str) == 6 end)
-    sig_235 = unique_signals |> Enum.filter(fn str -> String.length(str) == 5 end)
+    [sig_9, sig_0, sig_6] =
+      Enum.sort_by(sig_069, fn chars ->
+        # 9 -> 4 + 2
+        # 0 -> 4 + 3
+        # 6 -> 5 + 3
 
-    sig_6 = sig_069
-            |> Enum.filter(fn str ->
-              diff = String.graphemes(str) -- String.graphemes(sig_1)
+        length(chars -- sig_1) + length(chars -- sig_4)
+      end)
 
-              length(diff) == 5
-            end)
-            |> List.first
+    [sig_3, sig_5, sig_2] =
+      Enum.sort_by(sig_235, fn chars ->
+        # 3 -> 3 + 2
+        # 5 -> 4 + 2
+        # 2 -> 4 + 3
 
-    sig_0 = (sig_069 -- [sig_6])
-            |> Enum.filter(fn str ->
-              diff = String.graphemes(str) -- String.graphemes(sig_4)
-
-              length(diff) == 3
-            end)
-            |> List.first
-
-    sig_9 = (sig_069 -- [sig_6, sig_0])
-            |> List.first
-
-    sig_3 = sig_235
-            |> Enum.filter(fn str ->
-              diff = String.graphemes(str) -- String.graphemes(sig_7)
-
-              length(diff) == 2
-            end)
-            |> List.first
-
-    sig_2 = (sig_235 -- [sig_3])
-            |> Enum.filter(fn str ->
-              diff = String.graphemes(str) -- String.graphemes(sig_6)
-
-              length(diff) == 1
-            end)
-            |> List.first
-
-    sig_5 = (sig_235 -- [sig_3, sig_2])
-            |> List.first
+        length(chars -- sig_1) + length(chars -- sig_4)
+      end)
 
     [sig_0, sig_1, sig_2, sig_3, sig_4, sig_5, sig_6, sig_7, sig_8, sig_9]
+    |> Enum.with_index
+    |> Map.new
   end
 
   defp parse(name) do
@@ -83,14 +65,7 @@ defmodule Puzzle do
     |> Kernel.elem(1)
     |> String.trim
     |> String.split("\n")
-    |> Enum.map(fn line ->
-      line
-      |> String.split(" | ")
-      |> Enum.map(fn str ->
-          str
-          |> String.split
-      end)
-    end)
+    |> Enum.map(fn line -> line |> String.split(" | ") |> Enum.map(&String.split/1) end)
   end
 end
 
